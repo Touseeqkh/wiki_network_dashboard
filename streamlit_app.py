@@ -1,63 +1,59 @@
 import streamlit as st
-import wikipediaapi
 import networkx as nx
+import pandas as pd
 import plotly.graph_objs as go
+import wikipediaapi
 import numpy as np
 
-# --------------- Helper: Detect if a page is likely a person ---------------
-def is_probably_person(title):
-    return (
-        isinstance(title, str)
-        and " " in title
-        and title.istitle()
-        and "(" not in title
-        and "," not in title
-    )
+# --- Load CSV for gender filtering ---
+df = pd.read_csv("latin_american_intellectuals.csv")
+people_set = set(df["Name"].dropna().unique())
 
-# --------------- Fetch links: outgoing and simulated incoming ---------------
-def fetch_links(person):
-    wiki = wikipediaapi.Wikipedia(
-        language="en",
-        user_agent="WikipediaNetworkApp/1.0 (touseeqkhanswl@gmail.com)"
-    )
-    page = wiki.page(person)
-    if not page.exists():
-        return [], []
+# --- Sidebar: Select Person ---
+st.sidebar.title("Wikipedia Person Network")
+selected_person = st.sidebar.selectbox("Select a Person", sorted(people_set))
+selected_genders = st.sidebar.multiselect("Filter by Gender", df["Gender"].dropna().unique())
 
-    outgoing_links = list(page.links.keys())
-    incoming_links = []
+# --- Fetch Wikipedia Network ---
+st.title(f"🧠 Network for: {selected_person}")
+st.write("Fetching incoming and outgoing links from Wikipedia...")
 
-    for link in outgoing_links[:30]:  # Limit to 30 for performance
-        try:
-            linked_page = wiki.page(link)
-            if person in linked_page.links:
-                incoming_links.append(link)
-        except Exception:
-            continue
+wiki = wikipediaapi.Wikipedia(language="en", user_agent="WikiNetworkExplorer/1.0 (youremail@example.com)")
+page = wiki.page(selected_person)
 
-    return outgoing_links, incoming_links
+G = nx.DiGraph()
+G.add_node(selected_person)
 
-# --------------- Build filtered network graph ---------------
-def build_graph(person, outgoing, incoming, show_out=True, show_in=True):
-    G = nx.DiGraph()
-    G.add_node(person)
+outgoing_links = list(page.links.keys())
 
-    if show_out:
-        for link in outgoing:
-            if is_probably_person(link):
-                G.add_node(link)
-                G.add_edge(person, link)
+incoming_links = []
+for link in outgoing_links[:20]:
+    try:
+        linked_page = wiki.page(link)
+        if selected_person in linked_page.links:
+            G.add_edge(link, selected_person)
+            incoming_links.append(link)
+    except:
+        continue
 
-    if show_in:
-        for link in incoming:
-            if is_probably_person(link):
-                G.add_node(link)
-                G.add_edge(link, person)
+for link in outgoing_links:
+    G.add_edge(selected_person, link)
 
-    return G
+# --- Filter only nodes present in CSV people list ---
+filtered_nodes = set(G.nodes()).intersection(people_set)
+G = G.subgraph(filtered_nodes).copy()
 
-# --------------- Draw 3D network using Plotly ---------------
-def draw_3d_graph(G):
+# --- Filter by Gender ---
+if selected_genders:
+    gender_filtered_names = df[df["Gender"].isin(selected_genders)]["Name"].values
+    G = G.subgraph(set(G.nodes()).intersection(gender_filtered_names)).copy()
+
+# --- Compute PageRank ---
+pagerank_scores = nx.pagerank(G) if len(G) > 0 else {}
+
+# --- Draw with Plotly 3D ---
+if len(G.nodes) > 0:
+    st.success(f"Graph has {len(G.nodes)} nodes and {len(G.edges)} edges.")
     pos = nx.spring_layout(G, dim=3, seed=42)
     xyz = np.array([pos[v] for v in G.nodes()])
     Xn, Yn, Zn = xyz[:, 0], xyz[:, 1], xyz[:, 2]
@@ -70,72 +66,42 @@ def draw_3d_graph(G):
         Ye += [y0, y1, None]
         Ze += [z0, z1, None]
 
-    edge_trace = go.Scatter3d(
-        x=Xe, y=Ye, z=Ze,
-        mode='lines',
-        line=dict(color='gray', width=1),
-        hoverinfo='none'
-    )
+    edge_trace = go.Scatter3d(x=Xe, y=Ye, z=Ze,
+        mode='lines', line=dict(color='gray', width=1), hoverinfo='none')
 
-    node_trace = go.Scatter3d(
-        x=Xn, y=Yn, z=Zn,
+    node_trace = go.Scatter3d(x=Xn, y=Yn, z=Zn,
         mode='markers+text',
-        text=[node for node in G.nodes()],
+        text=[f"{node}<br>PageRank: {pagerank_scores.get(node,0):.4f}" for node in G.nodes()],
         textposition='top center',
-        marker=dict(size=6, color='skyblue'),
-        hoverinfo='text'
-    )
+        marker=dict(size=[pagerank_scores.get(n, 0) * 50 + 5 for n in G.nodes()], color='skyblue'),
+        hoverinfo='text')
 
-    fig = go.Figure(data=[edge_trace, node_trace],
-        layout=go.Layout(
-            title="🧠 Wikipedia Person Network",
-            titlefont_size=20,
-            margin=dict(l=0, r=0, b=0, t=40),
-            showlegend=False,
-            scene=dict(
-                xaxis=dict(showgrid=False),
-                yaxis=dict(showgrid=False),
-                zaxis=dict(showgrid=False)
-            )
-        )
-    )
-    return fig
-
-# --------------- Streamlit App Interface ---------------
-st.set_page_config(page_title="Wikipedia Person Network", layout="wide")
-st.title("🔗 Wikipedia Person Network Dashboard")
-
-person = st.text_input("Enter a Wikipedia person name:", "Gabriela Mistral")
-
-col1, col2 = st.columns(2)
-with col1:
-    show_outgoing = st.checkbox("Show Outgoing People", value=True)
-with col2:
-    show_incoming = st.checkbox("Show Incoming People", value=True)
-
-if person:
-    with st.spinner(f"Fetching Wikipedia data for '{person}'..."):
-        out_links, in_links = fetch_links(person)
-        G = build_graph(person, out_links, in_links, show_outgoing, show_incoming)
-
-        if G.number_of_nodes() > 1:
-            try:
-                pagerank_scores = nx.pagerank(G)
-            except Exception:
-                pagerank_scores = {node: 1 / G.number_of_nodes() for node in G.nodes()}
-
-            # Display Top 10 PageRank scores
-            st.subheader("📊 Top PageRank Nodes")
-            top_nodes = sorted(pagerank_scores.items(), key=lambda x: x[1], reverse=True)[:10]
-            st.table({
-                "Node": [n for n, _ in top_nodes],
-                "PageRank": [round(s, 4) for _, s in top_nodes]
-            })
-
-            # Draw Graph
-            st.subheader("🌐 Interactive 3D Graph")
-            st.plotly_chart(draw_3d_graph(G), use_container_width=True)
-        else:
-            st.warning("Not enough linked people to visualize the network.")
+    fig = go.Figure(data=[edge_trace, node_trace], layout=go.Layout(
+        title=f"3D Wikipedia Network: {selected_person}",
+        margin=dict(l=0, r=0, b=0, t=50),
+        scene=dict(xaxis=dict(showgrid=False),
+                   yaxis=dict(showgrid=False),
+                   zaxis=dict(showgrid=False))
+    ))
+    st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("Enter a valid person’s name from Wikipedia to begin.")
+    st.warning("No nodes available after filtering. Try changing filters or person.")
+
+# --- Optional: Show metrics table ---
+if len(G) > 0:
+    degrees = dict(G.degree())
+    data = []
+    for node in G.nodes():
+        gender = df[df["Name"] == node]["Gender"].values[0] if node in df["Name"].values else "Unknown"
+        occ = df[df["Name"] == node]["Occupation"].values[0] if node in df["Name"].values else "Unknown"
+        data.append({
+            "Name": node,
+            "Gender": gender,
+            "Occupation": occ,
+            "In-Degree": G.in_degree(node),
+            "Out-Degree": G.out_degree(node),
+            "PageRank": round(pagerank_scores.get(node, 0), 5)
+        })
+
+    st.subheader("📊 Node Metrics")
+    st.dataframe(pd.DataFrame(data).sort_values("PageRank", ascending=False))
