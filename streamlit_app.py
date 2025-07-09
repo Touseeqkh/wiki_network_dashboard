@@ -13,13 +13,13 @@ people_set = set(df["Name"].dropna().unique())
 st.sidebar.title("Wikipedia Person Network")
 selected_person = st.sidebar.selectbox("Select a Person", sorted(people_set))
 selected_genders = st.sidebar.multiselect("Filter by Gender", df["Gender"].dropna().unique())
-max_links = st.sidebar.slider("Max Links to Explore", min_value=10, max_value=200, value=100, step=10)
+max_links = st.sidebar.slider("Max Links to Explore", min_value=10, max_value=2000, value=1000, step=10)
 
 # --- Fetch Wikipedia Network ---
 st.title(f"🧠 Network for: {selected_person}")
 st.write("Fetching incoming and outgoing links from Wikipedia...")
 
-wiki = wikipediaapi.Wikipedia(language="en", user_agent="WikiNetworkExplorer/1.0 (youremail@example.com)")
+wiki = wikipediaapi.Wikipedia(language="en", user_agent="WikiNetworkExplorer/1.0 (touseeqkhanswl@example.com)")
 page = wiki.page(selected_person)
 
 G = nx.DiGraph()
