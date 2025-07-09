@@ -1,0 +1,31 @@
+Name,QID,InCSV,Birthdate,Gender,Nationality,Occupation,OutgoingLinks,IncomingLinks
+Cecilia Grierson,Q16564198,Yes,,,,,384,1
+Paulina Luisi,Q7154948,Yes,1875-09-22T00:00:00Z,female,Uruguay,teacher,83,0
+Carmen Lyra,Q2939620,Yes,1887-01-15T00:00:00Z,female,Costa Rica,writer,29,0
+Gabriela Mistral,Q80871,Yes,1889-04-07T00:00:00Z,female,Chile,writer,425,2
+María Rosa Oliver,Q5997320,Yes,1898-09-10T00:00:00Z,female,Argentina,writer,13,0
+Amalia de Castillo Ledón,,Yes,,,,,0,0
+Blanca Luz Brum,Q2905923,Yes,1905-05-31T00:00:00Z,female,Uruguay,painter,30,0
+Nydia Lamarque,Q24203445,Yes,1906-01-01T00:00:00Z,female,Argentina,writer,17,0
+Mirta Aguirre,Q9033592,Yes,1912-10-18T00:00:00Z,female,Cuba,writer,11,0
+Victoria Ocampo,Q72790,Yes,1890-04-07T00:00:00Z,female,Argentina,writer,107,4
+Gilda de Mello e Souza,,Yes,,,,,18,0
+Zélia Gattai,Q247526,Yes,1916-07-02T00:00:00Z,female,Brazil,photographer,352,1
+Rubén Darío,Q173767,Yes,1867-01-18T00:00:00Z,male,Nicaragua,writer,146,1
+Joaquim Nabuco,Q10307334,Yes,1849-08-19T00:00:00Z,male,Brazil,writer,1423,2
+Bartolomeu Mitre,Q314362,Yes,1821-06-26T00:00:00Z,male,Argentina,military personnel,0,0
+Pedro Henriquez Ureña,Q1153831,Yes,1884-06-29T00:00:00Z,male,Dominican Republic,writer,41,0
+Alfonso Reyes,Q462721,Yes,1889-05-17T00:00:00Z,male,Mexico,writer,107,1
+José Carlos Mariátegui,Q335544,Yes,1894-06-14T00:00:00Z,male,Peru,politician,713,1
+Manuel Gamio,Q2602445,Yes,1883-01-01T00:00:00Z,male,Mexico,sociologist,42,0
+José María Arguedas,Q266816,Yes,1911-01-18T00:00:00Z,male,Peru,poet,83,0
+José Luis Romero,Q9014133,Yes,1909-03-24T00:00:00Z,male,Argentina,historian,4,0
+Ildefonso Pereda Valdéz,,Yes,,,,,0,0
+Jorge Luis Borges,Q909,Yes,1899-08-24T00:00:00Z,male,Argentina,screenwriter,540,4
+José Ingenieros,Q5842891,Yes,,,,,29,0
+Domingo Faustino Sarmiento,Q254041,Yes,1811-02-14T00:00:00Z,male,Argentina,writer,290,1
+Beatriz Sarlo,Q4408686,Yes,1942-03-29T00:00:00Z,female,Argentina,writer,939,1
+José Martí,Q103285,Yes,1853-01-28T00:00:00Z,male,Spain,writer,391,1
+Fernando Ortiz,Q5860011,Yes,1717-01-01T00:00:00Z,male,Spain,sculptor,8,0
+Mariano Picón Salas,Q6762383,Yes,1901-01-26T00:00:00Z,male,Venezuela,writer,90,0
+Samuel Ramos,Q101113271,Yes,,male,,stage actor,34,0
