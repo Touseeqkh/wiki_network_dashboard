@@ -13,6 +13,7 @@ people_set = set(df["Name"].dropna().unique())
 st.sidebar.title("Wikipedia Person Network")
 selected_person = st.sidebar.selectbox("Select a Person", sorted(people_set))
 selected_genders = st.sidebar.multiselect("Filter by Gender", df["Gender"].dropna().unique())
+max_links = st.sidebar.slider("Max Links to Explore", min_value=10, max_value=200, value=100, step=10)
 
 # --- Fetch Wikipedia Network ---
 st.title(f"🧠 Network for: {selected_person}")
@@ -24,10 +25,10 @@ page = wiki.page(selected_person)
 G = nx.DiGraph()
 G.add_node(selected_person)
 
-outgoing_links = list(page.links.keys())
+outgoing_links = list(page.links.keys())[:max_links]
 
 incoming_links = []
-for link in outgoing_links[:20]:
+for link in outgoing_links:
     try:
         linked_page = wiki.page(link)
         if selected_person in linked_page.links:
