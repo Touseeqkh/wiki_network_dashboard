@@ -1,0 +1,6 @@
+streamlit
+wikipedia-api
+networkx
+plotly
+pandas
+numpy
