@@ -12,8 +12,9 @@ people_set = set(df["Name"].dropna().unique())
 # --- Sidebar: Select Person ---
 st.sidebar.title("Wikipedia Person Network")
 selected_person = st.sidebar.selectbox("Select a Person", sorted(people_set))
-selected_genders = st.sidebar.multiselect("Filter by Gender", df["Gender"].dropna().unique())
+selected_genders = st.sidebar.multiselect("Filter by Gender (only applies if CSV filter is ON)", df["Gender"].dropna().unique())
 max_links = st.sidebar.slider("Max Links to Explore", min_value=10, max_value=2000, value=1000, step=10)
+limit_to_csv_people = st.sidebar.checkbox("Only show people from CSV", value=True)
 
 # --- Fetch Wikipedia Network ---
 st.title(f"🧠 Network for: {selected_person}")
@@ -26,8 +27,8 @@ G = nx.DiGraph()
 G.add_node(selected_person)
 
 outgoing_links = list(page.links.keys())[:max_links]
-
 incoming_links = []
+
 for link in outgoing_links:
     try:
         linked_page = wiki.page(link)
@@ -40,14 +41,14 @@ for link in outgoing_links:
 for link in outgoing_links:
     G.add_edge(selected_person, link)
 
-# --- Filter only nodes present in CSV people list ---
-filtered_nodes = set(G.nodes()).intersection(people_set)
-G = G.subgraph(filtered_nodes).copy()
+# --- Optional filtering: keep all or only people from CSV ---
+if limit_to_csv_people:
+    filtered_nodes = set(G.nodes()).intersection(people_set)
+    G = G.subgraph(filtered_nodes).copy()
 
-# --- Filter by Gender ---
-if selected_genders:
-    gender_filtered_names = df[df["Gender"].isin(selected_genders)]["Name"].values
-    G = G.subgraph(set(G.nodes()).intersection(gender_filtered_names)).copy()
+    if selected_genders:
+        gender_filtered_names = df[df["Gender"].isin(selected_genders)]["Name"].values
+        G = G.subgraph(set(G.nodes()).intersection(gender_filtered_names)).copy()
 
 # --- Compute PageRank ---
 pagerank_scores = nx.pagerank(G) if len(G) > 0 else {}
