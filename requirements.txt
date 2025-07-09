@@ -4,3 +4,4 @@ networkx
 plotly
 pandas
 numpy
+scipy
