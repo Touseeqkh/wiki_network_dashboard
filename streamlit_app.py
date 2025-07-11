@@ -11,8 +11,7 @@ import os
 
 # --- Page Config ---
 st.set_page_config(page_title="Gabriela Mistral Network 3D + PyVis", layout="wide")
-
-st.title("🌎 Gabriela Mistral: Wikipedia Network Explorer with 3D & PyVis")
+st.title("🌎 Gabriela Mistral: Wikipedia Network Explorer with 3D, 2D & PyVis")
 
 # Load dataset filtered for Gabriela Mistral
 @st.cache_data
@@ -46,13 +45,12 @@ def build_gabriela_graph():
 
 G, center_node, incoming_links = build_gabriela_graph()
 
-# 3D Plotly Graph with Gabriela Mistral centered
+# --- 3D Plotly Graph ---
 def draw_3d_graph(G, selected_node=None):
     pos = nx.spring_layout(G, dim=3, seed=42)
-    
     xyz = np.array([pos[n] for n in G.nodes()])
-    Xn, Yn, Zn = xyz[:,0], xyz[:,1], xyz[:,2]
-    
+    Xn, Yn, Zn = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+
     Xe, Ye, Ze = [], [], []
     for e in G.edges():
         x0, y0, z0 = pos[e[0]]
@@ -60,12 +58,9 @@ def draw_3d_graph(G, selected_node=None):
         Xe += [x0, x1, None]
         Ye += [y0, y1, None]
         Ze += [z0, z1, None]
-        
-    edge_trace = go.Scatter3d(x=Xe, y=Ye, z=Ze,
-                              mode='lines',
-                              line=dict(color='gray', width=2),
-                              hoverinfo='none')
-    
+
+    edge_trace = go.Scatter3d(x=Xe, y=Ye, z=Ze, mode='lines', line=dict(color='gray', width=2), hoverinfo='none')
+
     node_color = []
     for node in G.nodes():
         if node == selected_node:
@@ -76,31 +71,37 @@ def draw_3d_graph(G, selected_node=None):
             node_color.append('lightblue')  # outgoing
         else:
             node_color.append('lightgray')
-            
-    node_trace = go.Scatter3d(x=Xn, y=Yn, z=Zn,
-                              mode='markers+text',
-                              marker=dict(size=8, color=node_color),
-                              text=list(G.nodes()),
-                              textposition='top center',
-                              hoverinfo='text')
-    
-    layout = go.Layout(title=f"3D Network Centered on {selected_node}",
-                       showlegend=False,
-                       margin=dict(l=0, r=0, t=50, b=0),
-                       scene=dict(xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                                  yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                                  zaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
-    
+
+    node_trace = go.Scatter3d(
+        x=Xn, y=Yn, z=Zn,
+        mode='markers+text',
+        marker=dict(size=8, color=node_color),
+        text=list(G.nodes()),
+        textposition='top center',
+        hoverinfo='text'
+    )
+
+    layout = go.Layout(
+        title=f"3D Network Centered on {selected_node}",
+        showlegend=False,
+        margin=dict(l=0, r=0, t=50, b=0),
+        scene=dict(
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            zaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+    )
+
     fig = go.Figure(data=[edge_trace, node_trace], layout=layout)
     st.plotly_chart(fig, use_container_width=True)
 
 draw_3d_graph(G, center_node)
 
+# --- Wikipedia Link & Info ---
 st.markdown(f"### Wikipedia Page: [🔗 Gabriela Mistral](https://en.wikipedia.org/wiki/Gabriela_Mistral)")
-
 st.info(f"📥 Incoming Links: {len(incoming_links)} / Outgoing Links: {len(list(G.edges(center_node)))}")
 
 # --- PyVis Interactive Network ---
+st.subheader("🕸️ Interactive Network (PyVis) with Filtering & Physics Controls")
 
 def visualize_pyvis_network(G):
     net = Network(notebook=True,
@@ -111,22 +112,21 @@ def visualize_pyvis_network(G):
                   width="100%",
                   select_menu=True,
                   filter_menu=True)
-    
+
     for node in G.nodes():
         title = f"<b>{node}</b>"
         net.add_node(node, label=node, title=title)
     for source, target in G.edges():
         net.add_edge(source, target)
-    
+
     net.show_buttons(filter_=['physics'])
-    
+
     with tempfile.TemporaryDirectory() as tmpdirname:
         path = os.path.join(tmpdirname, "pyvis_graph.html")
         net.save_graph(path)
         html = open(path, 'r', encoding='utf-8').read()
         components.html(html, height=800, scrolling=True)
 
-st.subheader("🕸️ Interactive Network (PyVis) with Filtering & Physics Controls")
 visualize_pyvis_network(G)
 
 # --- Adjacency Matrix ---
@@ -134,7 +134,7 @@ st.subheader("📀 Adjacency Matrix")
 adj_df = pd.DataFrame(nx.to_numpy_array(G, nodelist=G.nodes()), index=G.nodes(), columns=G.nodes())
 st.dataframe(adj_df)
 
-# --- Node Properties ---
+# --- Node Properties Table ---
 st.subheader("📋 Node Properties")
 summary = []
 for node in G.nodes():
@@ -148,3 +148,60 @@ for node in G.nodes():
         "Prize": record[0]["Prize"] if record and "Prize" in record[0] else "None"
     })
 st.dataframe(pd.DataFrame(summary))
+
+# --- 2D Centered Graph (New!) ---
+st.subheader("🧭 2D Centered View of Network")
+
+def draw_2d_graph(G, selected_node):
+    pos = nx.spring_layout(G, seed=42)
+
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x += [x0, x1, None]
+        edge_y += [y0, y1, None]
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='gray'),
+        hoverinfo='none',
+        mode='lines'
+    )
+
+    node_x, node_y, node_color, node_text = [], [], [], []
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+
+        color = (
+            'gold' if node == selected_node else
+            'lightcoral' if G.has_edge(node, selected_node) else
+            'lightblue' if G.has_edge(selected_node, node) else
+            'lightgray'
+        )
+        node_color.append(color)
+        node_text.append(node)
+
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        marker=dict(size=10, color=node_color),
+        text=node_text,
+        textposition='top center',
+        hoverinfo='text'
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace],
+                    layout=go.Layout(
+                        title=dict(text='📌 Centered View of Network', font=dict(size=16)),
+                        showlegend=False,
+                        hovermode='closest',
+                        margin=dict(b=0, l=0, r=0, t=50),
+                        xaxis=dict(showgrid=False, zeroline=False),
+                        yaxis=dict(showgrid=False, zeroline=False)))
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+draw_2d_graph(G, center_node)
