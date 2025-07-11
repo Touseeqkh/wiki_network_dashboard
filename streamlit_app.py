@@ -10,29 +10,42 @@ import tempfile
 import os
 
 # --- Page Config ---
-st.set_page_config(page_title="Gabriela Mistral Network 3D + PyVis", layout="wide")
-st.title("🌎 Gabriela Mistral: Wikipedia Network Explorer with 3D, 2D & PyVis")
+st.set_page_config(page_title="Latin American Intellectuals Network", layout="wide")
+st.title("🌎Exploring epistemic influence  through  Wikipedia graph analysis: Gabriela Mistral")
 
-# Load dataset filtered for Gabriela Mistral
+# Load full dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("latin_american_intellectuals.csv")
-    return df[df["Name"] == "Gabriela Mistral"]
+    return pd.read_csv("latin_american_intellectuals.csv")
 
 df = load_data()
 
-wiki = wikipediaapi.Wikipedia(language='en', user_agent='GabrielaMistralExplorer/1.0')
+# Sidebar filters
+gender_options = ['All'] + sorted(df["Gender"].dropna().unique())
+selected_gender = st.sidebar.selectbox("Filter by Gender", gender_options)
 
-# Build graph function for Gabriela Mistral
-def build_gabriela_graph():
-    person = "Gabriela Mistral"
+# Filter dataframe by gender
+if selected_gender != 'All':
+    filtered_df = df[df["Gender"] == selected_gender]
+else:
+    filtered_df = df
+
+# Sidebar selector
+selected_person = st.sidebar.selectbox("Choose a person", sorted(filtered_df["Name"].unique()))
+
+wiki = wikipediaapi.Wikipedia(language='en', user_agent='IntellectualsExplorer/1.0')
+
+# Build graph for selected person, connecting only to other known intellectuals
+def build_person_graph(person):
     page = wiki.page(person)
     G = nx.DiGraph()
     G.add_node(person)
     incoming = []
 
+    known_people = set(df["Name"])
+
     if page.exists():
-        links = list(page.links.keys())[:25]
+        links = [link for link in page.links.keys() if link in known_people]
         for link in links:
             G.add_edge(person, link)
             sub_page = wiki.page(link)
@@ -40,10 +53,10 @@ def build_gabriela_graph():
                 G.add_edge(link, person)
                 incoming.append(link)
     else:
-        st.error("Wikipedia page not found for Gabriela Mistral.")
+        st.error(f"Wikipedia page not found for {person}.")
     return G, person, incoming
 
-G, center_node, incoming_links = build_gabriela_graph()
+G, center_node, incoming_links = build_person_graph(selected_person)
 
 # --- 3D Plotly Graph ---
 def draw_3d_graph(G, selected_node=None):
@@ -66,9 +79,9 @@ def draw_3d_graph(G, selected_node=None):
         if node == selected_node:
             node_color.append('gold')
         elif G.has_edge(node, selected_node):
-            node_color.append('lightcoral')  # incoming
+            node_color.append('lightcoral')
         elif G.has_edge(selected_node, node):
-            node_color.append('lightblue')  # outgoing
+            node_color.append('lightblue')
         else:
             node_color.append('lightgray')
 
@@ -96,8 +109,7 @@ def draw_3d_graph(G, selected_node=None):
 
 draw_3d_graph(G, center_node)
 
-# --- Wikipedia Link & Info ---
-st.markdown(f"### Wikipedia Page: [🔗 Gabriela Mistral](https://en.wikipedia.org/wiki/Gabriela_Mistral)")
+st.markdown(f"### Wikipedia Page: [🔗 {selected_person}](https://en.wikipedia.org/wiki/{selected_person.replace(' ', '_')})")
 st.info(f"📥 Incoming Links: {len(incoming_links)} / Outgoing Links: {len(list(G.edges(center_node)))}")
 
 # --- PyVis Interactive Network ---
@@ -124,7 +136,7 @@ def visualize_pyvis_network(G):
     with tempfile.TemporaryDirectory() as tmpdirname:
         path = os.path.join(tmpdirname, "pyvis_graph.html")
         net.save_graph(path)
-        html = open(path, 'r', encoding='utf-8').read()
+        html = open(path, 'r', encoding='latin-1').read()
         components.html(html, height=800, scrolling=True)
 
 visualize_pyvis_network(G)
@@ -149,7 +161,7 @@ for node in G.nodes():
     })
 st.dataframe(pd.DataFrame(summary))
 
-# --- 2D Centered Graph (New!) ---
+# --- 2D Centered Graph ---
 st.subheader("🧭 2D Centered View of Network")
 
 def draw_2d_graph(G, selected_node):
@@ -201,7 +213,7 @@ def draw_2d_graph(G, selected_node):
                         margin=dict(b=0, l=0, r=0, t=50),
                         xaxis=dict(showgrid=False, zeroline=False),
                         yaxis=dict(showgrid=False, zeroline=False)))
-    
+
     st.plotly_chart(fig, use_container_width=True)
 
 draw_2d_graph(G, center_node)
